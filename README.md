@@ -18,11 +18,24 @@ bunx playwright install chromium
 ## Usage
 
 ```bash
+# optional: set an API token for authentication
+export API_TOKEN=your-secret-token
+
 bun run dev     # development with hot reload
 bun run start   # production
 ```
 
 Server runs on `http://localhost:3000`.
+
+## Authentication
+
+If `API_TOKEN` env var is set, all `/api/*` routes require:
+
+```
+Authorization: Bearer <your-secret-token>
+```
+
+Otherwise returns `401`. If `API_TOKEN` is not set, no auth required.
 
 ## API
 

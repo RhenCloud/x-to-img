@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
+import { auth } from "./middleware/auth"
 import convertRoute from "./routes/convert"
 import { closeBrowser } from "./services/screenshot"
 
@@ -8,6 +9,8 @@ const app = new Hono()
 
 app.use("*", cors())
 app.use("*", logger())
+
+app.use("/api/*", auth)
 
 app.route("/api", convertRoute)
 
