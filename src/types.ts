@@ -19,6 +19,11 @@ export interface TweetData {
     replies: number
     views: number | null
   }
+  urls: Array<{
+    short_url: string
+    display_url: string
+    expanded_url: string
+  }>
   quoted_tweet?: TweetData | null
 }
 

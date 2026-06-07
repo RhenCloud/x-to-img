@@ -6,13 +6,12 @@ Convert X/Twitter tweets to PNG images.
 
 - **Runtime**: [Bun](https://bun.sh)
 - **Framework**: [Hono](https://hono.dev)
-- **Browser**: [Playwright](https://playwright.dev)
+- **Rendering**: [Satori](https://github.com/vercel/satori) + [resvg-wasm](https://github.com/nicedoc/resvg-js)
 
 ## Setup
 
 ```bash
 bun install
-bunx playwright install chromium
 ```
 
 ## Usage

@@ -11,11 +11,6 @@ function parseIdFromURL(url: string): string | null {
   return null
 }
 
-function extractFilename(cdnURL: string): string {
-  const parts = cdnURL.split("/")
-  return parts.pop() || ""
-}
-
 export async function fetchTweetData(tweetId: string): Promise<TweetData> {
   const apiURL = `https://cdn.syndication.twimg.com/tweet-result?id=${tweetId}&token=x`
 
@@ -44,6 +39,30 @@ export async function fetchTweetData(tweetId: string): Promise<TweetData> {
     }
   }
 
+  const entities = raw.entities || {}
+  const urlEntities: Array<{ short_url: string; display_url: string; expanded_url: string }> = []
+
+  if (Array.isArray(entities.urls)) {
+    for (const u of entities.urls) {
+      urlEntities.push({
+        short_url: u.url || "",
+        display_url: u.display_url || "",
+        expanded_url: u.expanded_url || "",
+      })
+    }
+  }
+
+  let displayText = raw.text || raw.full_text || ""
+
+  for (const u of urlEntities) {
+    const displayLabel = u.display_url || u.expanded_url
+    if (displayLabel && u.short_url) {
+      displayText = displayText.replace(u.short_url, displayLabel)
+    }
+  }
+
+  displayText = displayText.replace(/https?:\/\/t\.co\/\S+/g, "").replace(/\n{3,}/g, "\n\n").trim()
+
   const author = raw.user || raw.core?.user_results?.result
 
   let quotedTweet: TweetData | null = null
@@ -53,7 +72,7 @@ export async function fetchTweetData(tweetId: string): Promise<TweetData> {
 
   return {
     id: raw.id_str || raw.id || tweetId,
-    text: raw.text || raw.full_text || "",
+    text: displayText,
     author: {
       name: author?.name || "Unknown",
       screen_name: author?.screen_name || author?.legacy?.screen_name || "",
@@ -67,6 +86,7 @@ export async function fetchTweetData(tweetId: string): Promise<TweetData> {
       replies: raw.reply_count ?? raw.conversation_count ?? 0,
       views: raw.views?.count ? parseInt(raw.views.count, 10) : null,
     },
+    urls: urlEntities,
     quoted_tweet: quotedTweet,
   }
 }
@@ -84,9 +104,30 @@ function parseRawTweet(raw: Record<string, any>): TweetData {
     }
   }
 
+  const entities = raw.entities || {}
+  const urlEntities: Array<{ short_url: string; display_url: string; expanded_url: string }> = []
+  if (Array.isArray(entities.urls)) {
+    for (const u of entities.urls) {
+      urlEntities.push({
+        short_url: u.url || "",
+        display_url: u.display_url || "",
+        expanded_url: u.expanded_url || "",
+      })
+    }
+  }
+
+  let displayText = raw.text || raw.full_text || ""
+  for (const u of urlEntities) {
+    const displayLabel = u.display_url || u.expanded_url
+    if (displayLabel && u.short_url) {
+      displayText = displayText.replace(u.short_url, displayLabel)
+    }
+  }
+  displayText = displayText.replace(/https?:\/\/t\.co\/\S+/g, "").replace(/\n{3,}/g, "\n\n").trim()
+
   return {
     id: raw.id_str || raw.id || "",
-    text: raw.text || raw.full_text || "",
+    text: displayText,
     author: {
       name: raw.user?.name || "Unknown",
       screen_name: raw.user?.screen_name || "",
@@ -100,6 +141,7 @@ function parseRawTweet(raw: Record<string, any>): TweetData {
       replies: raw.reply_count ?? 0,
       views: null,
     },
+    urls: urlEntities,
   }
 }
 

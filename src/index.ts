@@ -3,7 +3,6 @@ import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { auth } from "./middleware/auth"
 import convertRoute from "./routes/convert"
-import { closeBrowser } from "./services/screenshot"
 
 const app = new Hono()
 
@@ -110,14 +109,3 @@ export default {
   port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
   fetch: app.fetch,
 }
-
-process.on("SIGINT", async () => {
-  console.log("\nshutting down...")
-  await closeBrowser()
-  process.exit(0)
-})
-
-process.on("SIGTERM", async () => {
-  await closeBrowser()
-  process.exit(0)
-})
