@@ -2,6 +2,11 @@ const FONT_ZIP_URL = "https://github.com/subframe7536/maple-font/releases/downlo
 
 const TARGET_FILES = ["MapleMono-CN-Regular.ttf", "MapleMono-CN-Bold.ttf"] as const;
 
+const KV_KEYS = {
+  regular: "font:maple-mono-cn:regular",
+  bold: "font:maple-mono-cn:bold",
+} as const;
+
 interface FontCache {
   regular: ArrayBuffer;
   bold: ArrayBuffer;
@@ -27,16 +32,39 @@ function findEOCD(buf: Uint8Array) {
   return -1;
 }
 
-function unzip(zipped: ArrayBuffer, filenames: readonly string[]) {
+async function inflateRaw(compressed: Uint8Array): Promise<Uint8Array> {
+  const ds = new DecompressionStream("deflate-raw");
+  const writer = ds.writable.getWriter();
+  writer.write(compressed);
+  writer.close();
+  const reader = ds.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    total += value.length;
+  }
+  const result = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return result;
+}
+
+async function extractFonts(zipped: ArrayBuffer, filenames: readonly string[]) {
   const buf = new Uint8Array(zipped);
   const eocdOff = findEOCD(buf);
   if (eocdOff < 0) throw new Error("Invalid ZIP: EOCD not found");
 
   const entriesTotal = readU16(buf, eocdOff + 10);
-  const cdSize = readU32(buf, eocdOff + 12);
   const cdOff = readU32(buf, eocdOff + 16);
 
   const result = new Map<string, ArrayBuffer>();
+  const inflatePromises: Promise<void>[] = [];
 
   let pos = cdOff;
   for (let i = 0; i < entriesTotal; i++) {
@@ -58,37 +86,63 @@ function unzip(zipped: ArrayBuffer, filenames: readonly string[]) {
       const lhExtraLen = readU16(buf, lhPos + 28);
       const dataOff = lhPos + 30 + lhNameLen + lhExtraLen;
 
-      let data: ArrayBuffer;
       if (method === 0) {
-        data = buf.slice(dataOff, dataOff + uncompSize).buffer;
+        result.set(name, buf.slice(dataOff, dataOff + uncompSize).buffer as ArrayBuffer)
       } else if (method === 8) {
-        const compressed = buf.subarray(dataOff, dataOff + compSize);
-        data = Bun.inflate(compressed).buffer;
+        const compressed = buf.slice(dataOff, dataOff + compSize)
+        inflatePromises.push(
+          (async () => {
+            const decompressed = await inflateRaw(new Uint8Array(compressed))
+            result.set(name, decompressed.buffer as ArrayBuffer)
+          })(),
+        )
       } else {
         throw new Error(`Unsupported compression method: ${method}`);
       }
-      result.set(name, data);
     }
 
     pos += 46 + nameLen + extraLen + commentLen;
   }
 
+  await Promise.all(inflatePromises);
   return result;
 }
 
-export async function loadFonts(): Promise<FontCache> {
-  if (fontCache) return fontCache;
-
+async function downloadAndExtract(): Promise<FontCache> {
   const resp = await fetch(FONT_ZIP_URL);
   if (!resp.ok) throw new Error(`Failed to download fonts: ${resp.status}`);
   const zipBuf = await resp.arrayBuffer();
 
-  const files = unzip(zipBuf, TARGET_FILES);
+  const files = await extractFonts(zipBuf, TARGET_FILES);
   const regular = files.get("MapleMono-CN-Regular.ttf");
   const bold = files.get("MapleMono-CN-Bold.ttf");
   if (!regular || !bold) throw new Error("Font files not found in zip");
 
-  fontCache = { regular, bold };
+  return { regular, bold };
+}
+
+export async function loadFonts(kv?: KVNamespace): Promise<FontCache> {
+  if (fontCache) return fontCache;
+
+  if (kv) {
+    const [cachedRegular, cachedBold] = await Promise.all([
+      kv.get(KV_KEYS.regular, "arrayBuffer"),
+      kv.get(KV_KEYS.bold, "arrayBuffer"),
+    ]);
+
+    if (cachedRegular && cachedBold) {
+      fontCache = { regular: cachedRegular as ArrayBuffer, bold: cachedBold as ArrayBuffer }
+      return fontCache
+    }
+  }
+
+  const fonts = await downloadAndExtract();
+
+  if (kv) {
+    await Promise.all([kv.put(KV_KEYS.regular, fonts.regular), kv.put(KV_KEYS.bold, fonts.bold)]);
+  }
+
+  fontCache = fonts;
   return fontCache;
 }
 

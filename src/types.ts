@@ -35,6 +35,6 @@ export interface ConvertRequest {
 
 export interface ConvertResponse {
   success: boolean
-  image?: Buffer
+  image?: Uint8Array
   error?: string
 }

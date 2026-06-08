@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/src/config/schema.json",
+  "name": "x-to-img",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-08",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "FONT_KV",
+      "id": "2358a82cfe4d4a998ffe77be0f554239"
+    }
+  ]
+}

@@ -1,11 +1,12 @@
 # X to Image API
 
-Convert X/Twitter tweets to PNG images.
+Convert X/Twitter tweets to PNG images. Deployable on Cloudflare Workers.
 
 ## Tech Stack
 
-- **Runtime**: [Bun](https://bun.sh)
+- **Runtime**: Cloudflare Workers (also runs on [Bun](https://bun.sh))
 - **Framework**: [Hono](https://hono.dev)
+- **Font**: [Maple Mono CN](https://github.com/subframe7536/maple-font) (via GitHub Releases CDN)
 - **Rendering**: [Satori](https://github.com/vercel/satori) + [resvg-wasm](https://github.com/nicedoc/resvg-js)
 
 ## Setup
@@ -14,21 +15,38 @@ Convert X/Twitter tweets to PNG images.
 bun install
 ```
 
-## Usage
+## Deploy to Cloudflare Workers
 
 ```bash
-# optional: set an API token for authentication
-export API_TOKEN=your-secret-token
+# 1. Create KV namespace (first time only)
+npx wrangler kv:namespace create FONT_KV
 
-bun run dev     # development with hot reload
-bun run start   # production
+# 2. Copy the returned id into wrangler.jsonc kv_namespaces[0].id
+
+# 3. Set API token secret (optional)
+npx wrangler secret put API_TOKEN
+
+# 4. Deploy
+npx wrangler deploy
 ```
 
-Server runs on `http://localhost:3000`.
+## Local Development
+
+```bash
+# Bun
+bun run bun:dev
+
+# Workers emulator
+npx wrangler dev
+```
+
+## Font Caching
+
+Font files (~18MB Regular + Bold TTF) are downloaded from GitHub Releases on first cold start and cached in KV (`FONT_KV`). Subsequent requests read directly from KV, avoiding re-download and ZIP extraction overhead.
 
 ## Authentication
 
-If `API_TOKEN` env var is set, all `/api/*` routes require:
+If `API_TOKEN` is set, all `/api/*` routes require:
 
 ```
 Authorization: Bearer <your-secret-token>

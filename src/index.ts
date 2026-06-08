@@ -105,7 +105,4 @@ app.get("/", (c) => {
 
 app.get("/health", (c) => c.json({ status: "ok" }))
 
-export default {
-  port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
-  fetch: app.fetch,
-}
+export default app
