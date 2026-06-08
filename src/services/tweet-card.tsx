@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react"
-import type { TweetData } from "../types"
+import type { TweetData } from "../types.ts"
 
 const S = (props: CSSProperties) => props
 

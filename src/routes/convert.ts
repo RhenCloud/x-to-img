@@ -1,9 +1,12 @@
-import { Hono } from "hono"
-import type { ConvertRequest } from "../types"
-import { parseIdFromURL, fetchTweetData } from "../services/tweet-fetcher"
+import { Hono, type Context } from "hono"
+import type { ConvertRequest } from "../types.ts"
+import { parseIdFromURL, fetchTweetData } from "../services/tweet-fetcher.ts"
 import { renderTweetToPNG } from "../services/render.tsx"
+import type { FontKV } from "../services/kv.ts"
 
-const convertRoute = new Hono()
+type Vars = { kv: FontKV }
+
+const convertRoute = new Hono<{ Variables: Vars }>()
 
 convertRoute.get("/convert", async (c) => {
   const url = c.req.query("url")
@@ -31,7 +34,7 @@ convertRoute.post("/convert", async (c) => {
   return handleConvert(c, body)
 })
 
-async function handleConvert(c: any, req: ConvertRequest) {
+async function handleConvert(c: Context<{ Variables: Vars }>, req: ConvertRequest) {
   const tweetId = parseIdFromURL(req.url)
   if (!tweetId) {
     return c.json(
@@ -51,7 +54,7 @@ async function handleConvert(c: any, req: ConvertRequest) {
 
     c.header("Content-Type", "image/png")
     c.header("Cache-Control", "public, max-age=3600")
-    return c.body(image)
+    return c.body(image as any)
   } catch (err: any) {
     console.error("Conversion error:", err.message)
     return c.json(

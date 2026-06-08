@@ -1,4 +1,4 @@
-import type { TweetData } from "../types"
+import type { TweetData } from "../types.ts"
 
 function parseIdFromURL(url: string): string | null {
   const patterns = [

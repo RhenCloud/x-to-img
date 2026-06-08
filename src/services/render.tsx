@@ -1,9 +1,9 @@
 import satori from "satori"
 import { Resvg, initWasm } from "@resvg/resvg-wasm"
-import { loadFonts, getSatoriFonts } from "./font"
-import type { FontKV } from "./kv"
-import { TweetCard } from "./tweet-card"
-import type { TweetData } from "../types"
+import { loadFonts, getSatoriFonts } from "./font.ts"
+import type { FontKV } from "./kv.ts"
+import { TweetCard } from "./tweet-card.tsx"
+import type { TweetData } from "../types.ts"
 
 let wasmReady = false
 

@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
+    "@types/node": "^25.9.2",
     "hono": "^4.12.23",
     "pako": "^2.1.0",
     "react": "^19.2.7",

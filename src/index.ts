@@ -1,26 +1,33 @@
-import { Hono } from "hono"
-import { cors } from "hono/cors"
-import { logger } from "hono/logger"
-import { auth } from "./middleware/auth.ts"
-import { cfFontKV, denoFontKV } from "./services/kv.ts"
-import convertRoute from "./routes/convert.ts"
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { logger } from "hono/logger";
+import { auth } from "./middleware/auth.ts";
+import { cfFontKV, denoFontKV } from "./services/kv.ts";
+import type { FontKV } from "./services/kv.ts";
+import convertRoute from "./routes/convert.ts";
 
-const app = new Hono()
+type EnvBindings = {
+  FONT_KV?: { get(key: string, type?: string): Promise<unknown>; put(key: string, value: unknown): Promise<void> };
+};
+
+type AppVariables = {
+  kv: FontKV;
+};
+
+const app = new Hono<{ Bindings: EnvBindings; Variables: AppVariables }>();
 
 app.use("*", async (c, next) => {
-  const kv = c.env?.FONT_KV
-    ? cfFontKV(c.env.FONT_KV)
-    : await denoFontKV().catch(() => undefined)
-  if (kv) c.set("kv", kv)
-  await next()
-})
+  const kv = c.env?.FONT_KV ? cfFontKV(c.env.FONT_KV) : await denoFontKV().catch(() => undefined);
+  if (kv) c.set("kv", kv);
+  await next();
+});
 
-app.use("*", cors())
-app.use("*", logger())
+app.use("*", cors());
+app.use("*", logger());
 
-app.use("/api/*", auth)
+app.use("/api/*", auth);
 
-app.route("/api", convertRoute)
+app.route("/api", convertRoute);
 
 app.get("/", (c) => {
   return c.html(`<!DOCTYPE html>
@@ -109,13 +116,13 @@ app.get("/", (c) => {
     </div>
   </div>
 </body>
-</html>`)
-})
+</html>`);
+});
 
-app.get("/health", (c) => c.json({ status: "ok" }))
+app.get("/health", (c) => c.json({ status: "ok" }));
 
-export default app
+export default app;
 
-if (typeof globalThis.Deno !== "undefined") {
-  Deno.serve(app.fetch)
+if ((globalThis as any).Deno !== undefined) {
+  ((globalThis as any).Deno as typeof Deno).serve(app.fetch);
 }
