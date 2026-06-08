@@ -101,7 +101,7 @@ async function downloadAndExtract(): Promise<FontCache> {
   if (!resp.ok) throw new Error(`Failed to download fonts: ${resp.status}`)
 
   const zipBuf = await resp.arrayBuffer()
-  if (zipBuf.byteLength > 50_000_000) throw new Error(`ZIP size ${zipBuf.byteLength} exceeds 50MB limit`)
+  if (zipBuf.byteLength > 200_000_000) throw new Error(`ZIP size ${zipBuf.byteLength} exceeds 200MB limit`)
   return extractFonts(zipBuf)
 }
 
